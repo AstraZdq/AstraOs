@@ -7,6 +7,7 @@
 #include "keyboard.h"
 #include "time.h"
 #include "heap.h"
+#include "paging.h"
 
 void kernel_main()
 {
@@ -23,6 +24,8 @@ void kernel_main()
     pit_initialize(100);
 
     heap_initialize();
+
+    paging_initialize();
 
     char* memory = (char*)kmalloc(16);
 
