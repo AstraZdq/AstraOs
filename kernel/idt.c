@@ -18,6 +18,7 @@ struct idt_ptr
 extern void irq1();
 extern void irq0();
 extern void isr14();
+extern void isr128();
 
 static struct idt_entry idt[256];
 static struct idt_ptr idtp;
@@ -70,6 +71,12 @@ void idt_initialize()
         0x08,
         0x8E
     );
+    idt_set_gate(
+    128,
+    (uint32_t)isr128,
+    0x08,
+    0xEE
+);
 
     idt_load(&idtp);
 }

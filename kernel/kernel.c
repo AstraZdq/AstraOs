@@ -4,25 +4,43 @@
 #include "idt.h"
 #include "pic.h"
 #include "pit.h"
+#include "syscall.h"
 #include "keyboard.h"
 #include "time.h"
 #include "heap.h"
 #include "paging.h"
 #include "scheduler.h"
 #include "task.h"
+#include "usermode.h"
+#include "tss.h"
+
 
 void task_a()
 {
-    terminal_write("A");
+    static uint32_t counter = 0;
 
-    sleep(50);
+    counter++;
+
+    if (counter >= 20)
+    {
+        terminal_write("A");
+
+        counter = 0;
+    }
 }
 
 void task_b()
 {
-    terminal_write("B");
+    static uint32_t counter = 0;
 
-    sleep(50);
+    counter++;
+
+    if (counter >= 20)
+    {
+        terminal_write("B");
+
+        counter = 0;
+    }
 }
 
 void kernel_main()
@@ -32,6 +50,8 @@ void kernel_main()
     terminal_write("Booting AstraOS...\n\n");
 
     gdt_initialize();
+
+    tss_initialize();
 
     pic_initialize();
 
@@ -86,5 +106,12 @@ void kernel_main()
 
     __asm__ volatile ("sti");
 
-    scheduler_run();
+    terminal_write("Entering User Mode...\n");
+
+    /* enter_user_mode(); */
+
+    while (1)
+    {
+        __asm__ volatile ("hlt");
+    }
 }

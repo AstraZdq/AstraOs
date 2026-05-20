@@ -18,10 +18,22 @@ build/gdt_asm.o: kernel/gdt.asm | build
 build/isr.o: kernel/isr.asm | build
 	nasm -f elf32 kernel/isr.asm -o build/isr.o
 
+build/usermode.o: kernel/usermode.asm | build
+	nasm -f elf32 kernel/usermode.asm -o build/usermode.o
+
+build/tss_asm.o: kernel/tss.asm | build
+	nasm -f elf32 kernel/tss.asm -o build/tss_asm.o
+
 build/%.o: kernel/%.c | build
 	gcc -m32 -ffreestanding -Wall -Wextra -c $< -o $@
 
-$(KERNEL): build/kernel_entry.o $(C_OBJECTS) build/gdt_asm.o build/isr.o
+$(KERNEL): \
+	build/kernel_entry.o \
+	$(C_OBJECTS) \
+	build/gdt_asm.o \
+	build/isr.o \
+	build/usermode.o \
+	build/tss_asm.o
 	ld -m elf_i386 -T linker/linker.ld -o $@ $^
 
 $(ISO): $(KERNEL)

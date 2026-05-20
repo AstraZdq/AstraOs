@@ -1,5 +1,6 @@
 #include "pit.h"
 #include "io.h"
+#include "scheduler.h"
 
 volatile uint64_t timer_ticks = 0;
 
@@ -16,4 +17,6 @@ void pit_initialize(uint32_t frequency)
 void pit_handler()
 {
     timer_ticks++;
+
+    scheduler_schedule();
 }

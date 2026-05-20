@@ -1,7 +1,5 @@
 #include "scheduler.h"
 
-#include "terminal.h"
-
 static task_t* current_task = 0;
 
 void scheduler_initialize()
@@ -32,20 +30,17 @@ void scheduler_add_task(task_t* task)
     task->next = current_task;
 }
 
-void scheduler_run()
+void scheduler_schedule()
 {
     if (!current_task)
     {
         return;
     }
 
-    while (1)
-    {
-        void (*task_entry)() =
-            (void(*)())current_task->eip;
+    void (*task_entry)() =
+        (void(*)())current_task->eip;
 
-        task_entry();
+    task_entry();
 
-        current_task = current_task->next;
-    }
+    current_task = current_task->next;
 }

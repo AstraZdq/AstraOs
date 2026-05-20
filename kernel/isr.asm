@@ -1,6 +1,9 @@
 global irq0
 global irq1
 global isr14
+global isr128
+extern syscall_handler
+
 extern pit_handler
 extern keyboard_handler
 extern pic_send_eoi
@@ -38,6 +41,21 @@ isr14:
     pusha
 
     call page_fault_handler
+
+    popa
+
+    add esp, 4
+
+    iret
+
+isr128:
+    pusha
+
+    push eax
+
+    call syscall_handler
+
+    add esp, 4
 
     popa
 

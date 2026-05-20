@@ -1,3 +1,10 @@
 #pragma once
 
+#include <stdint.h>
+
 void gdt_initialize();
+
+void gdt_set_tss(
+    uint32_t base,
+    uint32_t limit
+);
