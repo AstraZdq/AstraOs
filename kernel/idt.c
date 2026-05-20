@@ -15,7 +15,8 @@ struct idt_ptr
     uint32_t base;
 } __attribute__((packed));
 
-extern void keyboard_isr();
+extern void irq1();
+extern void irq0();
 
 static struct idt_entry idt[256];
 static struct idt_ptr idtp;
@@ -49,8 +50,15 @@ void idt_initialize()
     }
 
     idt_set_gate(
+        32,
+        (uint32_t)irq0,
+        0x08,
+        0x8E
+    );
+
+    idt_set_gate(
         33,
-        (uint32_t)keyboard_isr,
+        (uint32_t)irq1,
         0x08,
         0x8E
     );

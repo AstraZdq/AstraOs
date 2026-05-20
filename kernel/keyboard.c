@@ -1,8 +1,5 @@
 #include "keyboard.h"
 #include "io.h"
-#include "terminal.h"
-#include "shell.h"
-#include "pic.h"
 #include "shell.h"
 
 static char keyboard_map[128] =
@@ -33,35 +30,12 @@ void keyboard_initialize()
 {
 }
 
-void keyboard_update()
-{
-    if (!(inb(0x64) & 1))
-    {
-        return;
-    }
-
-    uint8_t scancode = inb(0x60);
-
-    if (scancode > 57)
-    {
-        return;
-    }
-
-    char c = keyboard_map[scancode];
-
-    if (c)
-    {
-        shell_input(c);
-    }
-}
-
 void keyboard_handler()
 {
     uint8_t scancode = inb(0x60);
 
     if (scancode > 57)
     {
-        pic_send_eoi(1);
         return;
     }
 
@@ -71,6 +45,4 @@ void keyboard_handler()
     {
         shell_input(c);
     }
-
-    pic_send_eoi(1);
 }

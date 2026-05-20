@@ -4,24 +4,24 @@ KERNEL=build/astra.bin
 C_SOURCES=$(wildcard kernel/*.c)
 C_OBJECTS=$(patsubst kernel/%.c,build/%.o,$(C_SOURCES))
 
-ASM_SOURCES=$(wildcard kernel/*.asm)
-ASM_OBJECTS=$(patsubst kernel/%.asm,build/%.o,$(ASM_SOURCES))
-
 all: $(ISO)
 
 build:
 	mkdir -p build
 
 build/kernel_entry.o: boot/kernel_entry.asm | build
-	nasm -f elf32 $< -o $@
+	nasm -f elf32 boot/kernel_entry.asm -o build/kernel_entry.o
+
+build/gdt_asm.o: kernel/gdt.asm | build
+	nasm -f elf32 kernel/gdt.asm -o build/gdt_asm.o
+
+build/isr.o: kernel/isr.asm | build
+	nasm -f elf32 kernel/isr.asm -o build/isr.o
 
 build/%.o: kernel/%.c | build
 	gcc -m32 -ffreestanding -Wall -Wextra -c $< -o $@
 
-build/%.o: kernel/%.asm | build
-	nasm -f elf32 $< -o $@
-
-$(KERNEL): build/kernel_entry.o $(C_OBJECTS) $(ASM_OBJECTS)
+$(KERNEL): build/kernel_entry.o $(C_OBJECTS) build/gdt_asm.o build/isr.o
 	ld -m elf_i386 -T linker/linker.ld -o $@ $^
 
 $(ISO): $(KERNEL)
