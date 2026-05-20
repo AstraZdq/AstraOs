@@ -1,18 +1,19 @@
 #include "terminal.h"
 #include "shell.h"
-#include "keyboard.h"
+#include "pit.h"
+
 void kernel_main()
 {
     terminal_initialize();
 
     terminal_write("Booting AstraOS...\n\n");
 
-    keyboard_initialize();
+    pit_initialize(100);
 
     shell_initialize();
 
     while (1)
     {
-        keyboard_update();
+        __asm__ volatile ("hlt");
     }
 }
