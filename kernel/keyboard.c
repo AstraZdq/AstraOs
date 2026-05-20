@@ -1,6 +1,7 @@
 #include "keyboard.h"
 #include "io.h"
 #include "terminal.h"
+#include "shell.h"
 
 static char keyboard_map[128] =
 {
@@ -48,6 +49,6 @@ void keyboard_update()
 
     if (c)
     {
-        terminal_putchar(c);
+        shell_input(c);
     }
 }

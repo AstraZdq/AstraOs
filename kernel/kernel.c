@@ -8,8 +8,8 @@ void kernel_main()
     terminal_write("Booting AstraOS...\n\n");
 
     keyboard_initialize();
-    
-    shell_start();
+
+    shell_initialize();
 
     while (1)
     {

@@ -1,3 +1,4 @@
 #pragma once
 
-void shell_start();
+void shell_initialize();
+void shell_input(char c);
