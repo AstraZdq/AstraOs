@@ -23,6 +23,9 @@ build/isr.o: kernel/arch/isr.asm | build
 build/usermode.o: kernel/core/usermode.asm | build
 	nasm -f elf32 kernel/core/usermode.asm -o build/usermode.o
 
+build/sched/switch_task.o: kernel/sched/switch_task.asm | build
+	nasm -f elf32 kernel/sched/switch_task.asm -o build/sched/switch_task.o
+
 build/tss_asm.o: kernel/arch/tss.asm | build
 	nasm -f elf32 kernel/arch/tss.asm -o build/tss_asm.o
 
@@ -30,7 +33,7 @@ build/tss_asm.o: kernel/arch/tss.asm | build
 build/%.o: kernel/%.c | build
 	mkdir -p $(dir $@)
 	gcc -m32 -ffreestanding -Wall -Wextra \
-		-Ikernel -Ikernel/arch -Ikernel/core -Ikernel/irq -Ikernel/mm -Ikernel/sched -Ikernel/sys \
+		-Ikernel -Ikernel/arch -Ikernel/core -Ikernel/irq -Ikernel/mm -Ikernel/sched -Ikernel/fs -Ikernel/sys \
 		-c $< -o $@
 
 $(KERNEL): \
@@ -39,7 +42,8 @@ $(KERNEL): \
 	build/gdt_asm.o \
 	build/isr.o \
 	build/usermode.o \
-	build/tss_asm.o
+	build/tss_asm.o \
+	build/sched/switch_task.o
 	ld -m elf_i386 -T linker/linker.ld -o $@ $^
 
 $(ISO): $(KERNEL)

@@ -1,66 +1,49 @@
 #include "process.h"
 
+#include "terminal.h"
+
 #define MAX_PROCESSES 4
 
-static process_t processes[MAX_PROCESSES];
+static void (*processes[MAX_PROCESSES])();
+
+static int process_count = 0;
+
 static int current_process = 0;
 
 void process_initialize()
 {
-    for (int i = 0; i < MAX_PROCESSES; i++)
-    {
-        processes[i].active = 0;
-    }
+    process_count = 0;
+
+    current_process = 0;
 }
 
 int create_process(void (*entry)())
 {
-    for (int i = 0; i < MAX_PROCESSES; i++)
+    if (process_count >= MAX_PROCESSES)
     {
-        if(!processes[i].active)
-        {
-            processes[i].active = 1;
-
-            processes[i].eip =
-                (uint32_t)entry;
-
-            processes[i].stack =
-                0x300000 + (i * 0x2000);
-
-            processes[i].esp =
-                processes[i].stack + 0x2000;
-
-            processes[i].ebp =
-                processes[i].esp;
-            
-                return i;
-        }
+        return -1;
     }
 
-    return -1;
+    processes[process_count] = entry;
+
+    process_count++;
+
+    return process_count - 1;
 }
 
 void process_switch()
 {
+    if (process_count == 0)
+    {
+        return;
+    }
+
+    processes[current_process]();
+
     current_process++;
 
-    if (current_process >= MAX_PROCESSES)
+    if (current_process >= process_count)
     {
         current_process = 0;
     }
-
-    while (!processes[current_process].active)
-    {
-        current_process++;
-
-        if (current_process >= MAX_PROCESSES)
-        {
-            current_process = 0;
-        }
-    }
-
-    void (*entry)() =
-        (void(*)())processes[current_process].eip;
-
-    entry();
 }

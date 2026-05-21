@@ -54,6 +54,8 @@ make run
 - `linker/`     -> linker script
 - `build/`      -> fichiers générés
 
+![AstraOS Screenshot](image/screen.png)
+
 ## Pourquoi ce projet ?
 
 Parce que faire un OS c’est drôle.

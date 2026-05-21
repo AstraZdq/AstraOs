@@ -1,114 +1,129 @@
 #include "terminal.h"
 #include "shell.h"
+
 #include "gdt.h"
 #include "idt.h"
 #include "pic.h"
 #include "pit.h"
-#include "syscall.h"
+
 #include "keyboard.h"
+
 #include "time.h"
+
 #include "heap.h"
 #include "paging.h"
+
 #include "scheduler.h"
-#include "task.h"
-#include "usermode.h"
-#include "tss.h"
+#include "process.h"
 
+#include "syscall.h"
 
-void task_a()
-{
-    static uint32_t counter = 0;
-
-    counter++;
-
-    if (counter >= 20)
-    {
-        terminal_write("A");
-
-        counter = 0;
-    }
-}
-
-void task_b()
-{
-    static uint32_t counter = 0;
-
-    counter++;
-
-    if (counter >= 20)
-    {
-        terminal_write("B");
-
-        counter = 0;
-    }
-}
+#include "vfs.h"
+#include "initrd.h"
+#include "elf.h"
 
 void kernel_main()
 {
     terminal_initialize();
 
-    terminal_write("Booting AstraOS...\n\n");
+    terminal_write("\n");
+    terminal_write("  ========================================\n");
+    terminal_write("    Welcome to AstraOS Kernel\n");
+    terminal_write("    x86 32-bit Architecture\n");
+    terminal_write("  ========================================\n");
+    terminal_write("\n");
 
+    terminal_write("  [*] Initializing GDT...\n");
     gdt_initialize();
 
-    tss_initialize();
-
+    terminal_write("  [*] Initializing PIC...\n");
     pic_initialize();
 
+    terminal_write("  [*] Initializing IDT...\n");
     idt_initialize();
 
-    pit_initialize(100);
-
-    heap_initialize();
-
+    terminal_write("  [*] Setting up paging...\n");
     paging_initialize();
 
-    char* memory = (char*)kmalloc(16);
+    terminal_write("  [*] Initializing heap...\n");
+    heap_initialize();
 
-    memory[0] = 'O';
-    memory[1] = 'K';
-    memory[2] = '\0';
+    terminal_write("  [*] Mounting filesystem...\n");
+    vfs_initialize();
 
-    terminal_write(memory);
-    terminal_write("\n");
+    terminal_write("  [*] Loading initrd...\n");
+    initrd_initialize();
 
-    char* test1 = (char*)kmalloc(32);
+    terminal_write("  [*] Initializing syscalls...\n");
+    syscall_initialize();
 
-    test1[0] = 'A';
-    test1[1] = '\0';
+    terminal_write("  [*] Initializing process manager...\n");
+    process_initialize();
 
-    terminal_write(test1);
-    terminal_write("\n");
-
-    kfree(test1);
-
-    char* test2 = (char*)kmalloc(32);
-
-    test2[0] = 'B';
-    test2[1] = '\0';
-
-    terminal_write(test2);
-    terminal_write("\n");
-
+    terminal_write("  [*] Initializing scheduler...\n");
     scheduler_initialize();
 
-    task_t* a = task_create(task_a);
+    terminal_write("  [*] Starting timer (100 Hz)...\n");
+    pit_initialize(100);
 
-    task_t* b = task_create(task_b);
+    terminal_write("\n  [OK] Kernel boot complete!\n\n");
 
-    scheduler_add_task(a);
+    file_t* hello =
+        vfs_open("hello.txt");
 
-    scheduler_add_task(b);
+    if (hello)
+    {
+        terminal_write("  [+] hello.txt: ");
+        terminal_write(
+            (char*)hello->data
+        );
 
+        terminal_write("\n");
+    }
+
+    file_t* readme =
+        vfs_open("readme.txt");
+
+    if (readme)
+    {
+        terminal_write("  [+] readme.txt: ");
+        terminal_write(
+            (char*)readme->data
+        );
+
+        terminal_write("\n");
+    }
+
+    file_t* elf_file =
+        vfs_open("test.elf");
+
+    if (elf_file)
+    {
+        terminal_write("\n  [*] ELF Binary Check:\n");
+        
+        if (elf_validate(
+            elf_file->data))
+        {
+            elf_load(
+                elf_file->data
+            );
+        }
+        else
+        {
+            terminal_write("      [!] ELF validation failed\n");
+        }
+    }
+
+    terminal_write("\n  [*] Initializing keyboard...\n");
     keyboard_initialize();
 
+    terminal_write("  [*] Starting shell...\n");
     shell_initialize();
 
+    terminal_write("\n  Type 'help' for available commands\n");
+    terminal_write("  -----------------------------------\n\n");
+
     __asm__ volatile ("sti");
-
-    terminal_write("Entering User Mode...\n");
-
-    /* enter_user_mode(); */
 
     while (1)
     {
