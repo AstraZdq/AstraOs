@@ -1,39 +1,76 @@
 # AstraOS
 
-Hey, moi c’est Astrazdq.
+AstraOS est un mini système d’exploitation x86 développé en C et en assembleur NASM.
 
-J’ai créé AstraOS juste pour le fun, pour apprendre comment un OS fonctionne derrière les écrans noirs et les lignes bizarres qu’on voit dans les vieux tutos kernel dev.
+Le projet a été créé dans un objectif d’apprentissage du fonctionnement bas niveau d’un OS :
+bootloader, mémoire, interruptions, multitâche, ELF, drivers, etc.
 
-C’est un mini OS x86 écrit en C et en assembleur, pas un truc sérieux destiné à remplacer Linux, mais un projet perso pour expérimenter le boot, les interruptions, le clavier, le timer et construire un petit shell maison.
+Ce n’est pas un système destiné à remplacer Linux ou Windows, mais un vrai kernel expérimental développé from scratch pour comprendre comment fonctionne un ordinateur derrière le système d’exploitation.
 
-## Ce qu’il fait actuellement
+---
 
-- Boot avec GRUB (multiboot)
-- Petit kernel 32-bit
+## Screenshot
+
+![AstraOS Screenshot](images/astraos.png)
+
+---
+
+## Fonctionnalités actuelles
+
+### Boot & architecture
+- Boot via GRUB (Multiboot)
+- Kernel 32-bit x86
+- GDT / IDT
+- Gestion des interruptions
+- PIC remappé
+- PIT timer
+
+### Mémoire
+- Heap kernel
+- Paging
+- Gestion des page faults
+
+### Multitâche
+- Scheduler basique
+- Gestion de tâches kernel
+- Support initial du ring3 / usermode
+
+### Système
+- Shell interactif
 - Gestion clavier
-- Timer PIT
-- Interruptions (IDT / PIC)
-- Shell ultra basique
 - Affichage VGA texte
+- Syscalls de base
 
-Bref, le minimum pour commencer à jouer avec un kernel.
+### Filesystem & ELF
+- VFS minimal
+- Initrd structuré
+- Parsing ELF
+- Parsing Program Headers ELF
 
-## Stack
+---
+
+## Stack technique
 
 - C
 - NASM Assembly
 - GRUB
 - QEMU
+- x86 (i386)
+
+---
 
 ## Build & lancement
 
 ### Prérequis
 
-- `gcc` (avec support `-m32` / `gcc-multilib`)
+Installer :
+
+- `gcc-multilib`
 - `nasm`
-- `ld` (binutils)
-- `grub-mkrescue` / `xorriso`
-- `qemu-system-i386`
+- `binutils`
+- `grub-pc-bin`
+- `xorriso`
+- `qemu-system-x86`
 
 ### Compiler
 
@@ -41,45 +78,60 @@ Bref, le minimum pour commencer à jouer avec un kernel.
 make
 ```
 
-### Lancer dans QEMU
-
+Lancer
 ```bash
 make run
 ```
 
-## Structure rapide du projet
+Structure du projet 
+```bash
+boot/           -> entrée du kernel / multiboot
+kernel/
 
-- `boot/`       -> démarrage du kernel
-- `kernel/`     -> coeur du système
-- `linker/`     -> linker script
-- `build/`      -> fichiers générés
+  arch/         -> GDT, IDT, ISR, TSS
+  core/         -> kernel principal, terminal, shell
+  irq/          -> PIC, PIT, IRQ
+  mm/           -> heap, paging
+  fs/           -> VFS, initrd, ELF
+  sched/        -> scheduler / tâches
+  sys/          -> faults / exceptions
 
-![AstraOS Screenshot](image/screen.png)
+linker/         -> linker script
+build/          -> fichiers compilés
+iso/            -> structure ISO GRUB
+```
 
-## Pourquoi ce projet ?
+Objectifs futurs
+ELF loader complet
+Exécution réelle de programmes userspace
+Mémoire virtuelle avancée
+Scheduler plus évolué
+Drivers ATA
+FAT32 / ext2
+Interface graphique
+Réseau
+Audio
+SMP / multicore
+Passage 64-bit
+Pourquoi ce projet ?
 
-Parce que faire un OS c’est drôle.
+AstraOS existe principalement pour :
 
-Et aussi parce que c’est probablement la meilleure façon de comprendre :
+apprendre le kernel development
+comprendre l’architecture x86
+expérimenter le bas niveau
+construire un OS étape par étape
+Disclaimer
 
-- comment un PC démarre,
-- ce qu’est vraiment un kernel,
-- comment fonctionnent les interruptions,
-- et pourquoi tout casse quand tu oublies un `sti`.
+AstraOS est un projet expérimental.
 
-## Objectifs futurs
+Le système peut :
 
-- meilleur shell
-- gestion mémoire
-- système de fichiers
-- multitâche
-- drivers
-- interface graphique peut-être
+crash
+reboot
+freeze
+triple fault
+ou fonctionner correctement (parfois)
+Auteur
 
-## Disclaimer
-
-Ce projet est expérimental. Il peut crash, freeze, reboot, exploser mentalement ton CPU (pas vraiment).
-
----
-
-AstraOS — Un OS fait pour apprendre, casser des trucs et comprendre comment ça marche.
+Projet développé par Astrazdq.
