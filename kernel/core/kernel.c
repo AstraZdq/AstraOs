@@ -22,16 +22,13 @@
 #include "initrd.h"
 #include "elf.h"
 
+#include "panic.h"
+
 void kernel_main()
 {
     terminal_initialize();
 
-    terminal_write("\n");
-    terminal_write("  ========================================\n");
-    terminal_write("    Welcome to AstraOS Kernel\n");
-    terminal_write("    x86 32-bit Architecture\n");
-    terminal_write("  ========================================\n");
-    terminal_write("\n");
+   
 
     terminal_write("  [*] Initializing GDT...\n");
     gdt_initialize();
@@ -67,6 +64,13 @@ void kernel_main()
     pit_initialize(100);
 
     terminal_write("\n  [OK] Kernel boot complete!\n\n");
+
+     terminal_write("\n");
+    terminal_write("  ========================================\n");
+    terminal_write("    Welcome to AstraOS Kernel\n");
+    terminal_write("    x86 32-bit Architecture\n");
+    terminal_write("  ========================================\n");
+    terminal_write("\n");
 
     file_t* hello =
         vfs_open("hello.txt");
@@ -118,10 +122,13 @@ void kernel_main()
     keyboard_initialize();
 
     terminal_write("  [*] Starting shell...\n");
-    shell_initialize();
+    
 
     terminal_write("\n  Type 'help' for available commands\n");
     terminal_write("  -----------------------------------\n\n");
+    shell_initialize();
+
+    
 
     __asm__ volatile ("sti");
 

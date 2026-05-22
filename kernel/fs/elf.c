@@ -50,24 +50,32 @@ void elf_load(void* data)
         (elf_header_t*)data;
 
     terminal_write(
-        "      [+] ELF header validated\n"
+        "ELF detected\n"
     );
 
     terminal_write(
-        "      [+] Entry point: 0x"
+        "Entry point: 0x"
     );
 
-    print_hex(elf->entry);
+    print_hex(
+        elf->entry
+    );
 
-    terminal_write("\n");
+    terminal_write(
+        "\n"
+    );
 
     terminal_write(
         "Program headers: "
     );
 
-    print_hex(elf->phnum);
+    print_hex(
+        elf->phnum
+    );
 
-    terminal_write("\n");
+    terminal_write(
+        "\n"
+    );
 
     elf_program_header_t* ph =
         (elf_program_header_t*)
@@ -76,31 +84,56 @@ void elf_load(void* data)
     );
 
     for (int i = 0; i < elf->phnum; i++)
-{
-    if (ph[i].type != 1)
     {
-        continue;
-    }
+        if (ph[i].type != 1)
+        {
+            continue;
+        }
 
-    uint8_t* source =
-        (uint8_t*)data + ph[i].offset;
+        uint8_t* source =
+            (uint8_t*)data + ph[i].offset;
 
-    uint8_t* destination =
-        (uint8_t*)ph[i].virtual_address;
+        uint8_t* destination =
+            (uint8_t*)ph[i].virtual_address;
 
-    for (uint32_t j = 0; j < ph[i].file_size; j++)
-    {
-        destination[j] = source[j];
+        for (uint32_t j = 0; j < ph[i].file_size; j++)
+        {
+            destination[j] = source[j];
+        }
+
+        terminal_write(
+            "Segment loaded at: 0x"
+        );
+
+        print_hex(
+            ph[i].virtual_address
+        );
+
+        terminal_write(
+            "\n"
+        );
     }
 
     terminal_write(
-        "Segment loaded at: 0x"
+        "Preparing ELF execution...\n"
+    );
+
+    terminal_write(
+        "Entry jump address: 0x"
     );
 
     print_hex(
-        ph[i].virtual_address
+        elf->entry
     );
 
-    terminal_write("\n");
-}
+    terminal_write(
+        "\n"
+    );
+
+    /*
+    void (*entry)() =
+        (void(*)())elf->entry;
+
+    entry();
+    */
 }
