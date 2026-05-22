@@ -24,6 +24,8 @@
 
 #include "panic.h"
 
+#include "tss.h"
+
 void kernel_main()
 {
     terminal_initialize();
@@ -32,6 +34,9 @@ void kernel_main()
 
     terminal_write("  [*] Initializing GDT...\n");
     gdt_initialize();
+
+    terminal_write("  [*] Initializing TSS...\n");
+    tss_initialize();
 
     terminal_write("  [*] Initializing PIC...\n");
     pic_initialize();

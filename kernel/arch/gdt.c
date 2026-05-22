@@ -2,29 +2,13 @@
 
 #include <stdint.h>
 
-struct gdt_entry
-{
-    uint16_t limit_low;
-    uint16_t base_low;
-    uint8_t base_middle;
-    uint8_t access;
-    uint8_t granularity;
-    uint8_t base_high;
-} __attribute__((packed));
+gdt_entry_t gdt[6];
 
-struct gdt_ptr
-{
-    uint16_t limit;
-    uint32_t base;
-} __attribute__((packed));
+gdt_ptr_t gdt_ptr;
 
 extern void gdt_flush(uint32_t);
 
-static struct gdt_entry gdt[6];
-
-static struct gdt_ptr gp;
-
-static void gdt_set_gate(
+void gdt_set_gate(
     int num,
     uint32_t base,
     uint32_t limit,
@@ -44,33 +28,44 @@ static void gdt_set_gate(
         (limit & 0xFFFF);
 
     gdt[num].granularity =
-        (limit >> 16) & 0x0F;
+        ((limit >> 16) & 0x0F);
 
     gdt[num].granularity |=
-        granularity & 0xF0;
+        (granularity & 0xF0);
 
-    gdt[num].access = access;
+    gdt[num].access =
+        access;
 }
 
 void gdt_set_tss(
+    int num,
     uint32_t base,
-    uint32_t limit)
+    uint32_t limit,
+    uint8_t access,
+    uint8_t granularity)
 {
     gdt_set_gate(
-        5,
+        num,
         base,
         limit,
-        0x89,
-        0x40
+        access,
+        granularity
     );
 }
 
 void gdt_initialize()
 {
-    gp.limit =
-        (sizeof(struct gdt_entry) * 6) - 1;
+    gdt_ptr.limit =
+        (sizeof(gdt_entry_t) * 6) - 1;
 
-    gp.base = (uint32_t)&gdt;
+    gdt_ptr.base =
+        (uint32_t)&gdt;
+
+    /*
+    =========================
+    NULL SEGMENT
+    =========================
+    */
 
     gdt_set_gate(
         0,
@@ -80,6 +75,12 @@ void gdt_initialize()
         0
     );
 
+    /*
+    =========================
+    KERNEL CODE
+    =========================
+    */
+
     gdt_set_gate(
         1,
         0,
@@ -87,6 +88,12 @@ void gdt_initialize()
         0x9A,
         0xCF
     );
+
+    /*
+    =========================
+    KERNEL DATA
+    =========================
+    */
 
     gdt_set_gate(
         2,
@@ -96,6 +103,12 @@ void gdt_initialize()
         0xCF
     );
 
+    /*
+    =========================
+    USER CODE
+    =========================
+    */
+
     gdt_set_gate(
         3,
         0,
@@ -103,6 +116,12 @@ void gdt_initialize()
         0xFA,
         0xCF
     );
+
+    /*
+    =========================
+    USER DATA
+    =========================
+    */
 
     gdt_set_gate(
         4,
@@ -112,5 +131,7 @@ void gdt_initialize()
         0xCF
     );
 
-    gdt_flush((uint32_t)&gp);
+    gdt_flush(
+        (uint32_t)&gdt_ptr
+    );
 }

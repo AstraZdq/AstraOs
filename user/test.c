@@ -1,21 +1,32 @@
-void _start()
+void syscall_print(const char* str)
 {
-    volatile char* vga =
-        (volatile char*)0xB8000;
+    __asm__ volatile (
+        "int $0x80"
+        :
+        : "a"(1), "b"(str)
+    );
+}
 
-    const char* msg =
-        "Hello from user ELF!";
+void syscall_exit()
+{
+    __asm__ volatile (
+        "int $0x80"
+        :
+        : "a"(2)
+    );
+}
 
-    int i = 0;
+int main()
+{
+    syscall_print(
+        "Hello from user mode!\n"
+    );
 
-    while (msg[i])
-    {
-        vga[i * 2] = msg[i];
-        vga[i * 2 + 1] = 0x0A;
-        i++;
-    }
+    syscall_exit();
 
     while (1)
     {
     }
+
+    return 0;
 }

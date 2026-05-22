@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+#include "usermode.h"
+
 static void memory_copy(
     uint8_t* src,
     uint8_t* dst,
@@ -94,10 +96,14 @@ void elf_execute(void* data)
     elf_header_t* elf =
         (elf_header_t*)data;
 
-    terminal_write("Launching ELF...\n");
+    terminal_write("[ELF] About to enter user mode\n");
+    terminal_write("[ELF] Entry point: ");
+    terminal_write_hex(elf->entry);
+    terminal_write("\n");
 
-    void (*entry)() =
-        (void(*)())elf->entry;
+    enter_user_mode(
+        elf->entry
+    );
 
-    entry();
+    terminal_write("[ELF] Returned from user mode (should not reach)\n");
 }

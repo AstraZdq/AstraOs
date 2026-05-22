@@ -8,6 +8,8 @@ extern pit_handler
 extern keyboard_handler
 extern pic_send_eoi
 extern page_fault_handler
+extern syscall_handler
+
 
 irq0:
     pusha
@@ -54,11 +56,12 @@ isr14:
 isr128:
     pusha
 
+    push ebx
     push eax
 
     call syscall_handler
 
-    add esp, 4
+    add esp, 8
 
     popa
 

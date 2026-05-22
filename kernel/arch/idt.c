@@ -1,27 +1,21 @@
 #include "idt.h"
 
-struct idt_entry
-{
-    uint16_t offset_low;
-    uint16_t selector;
-    uint8_t zero;
-    uint8_t type_attr;
-    uint16_t offset_high;
-} __attribute__((packed));
+#include <stddef.h>
+#include <stdint.h>
 
-struct idt_ptr
-{
-    uint16_t limit;
-    uint32_t base;
-} __attribute__((packed));
+#include "terminal.h"
 
-extern void irq1();
+extern void idt_load(uint32_t);
+
 extern void irq0();
+extern void irq1();
+
 extern void isr14();
 extern void isr128();
 
-static struct idt_entry idt[256];
-static struct idt_ptr idtp;
+idt_entry_t idt[256];
+
+idt_ptr_t idt_ptr;
 
 static void idt_set_gate(
     uint8_t num,
@@ -29,27 +23,44 @@ static void idt_set_gate(
     uint16_t selector,
     uint8_t flags)
 {
-    idt[num].offset_low = base & 0xFFFF;
-    idt[num].selector = selector;
-    idt[num].zero = 0;
-    idt[num].type_attr = flags;
-    idt[num].offset_high = (base >> 16) & 0xFFFF;
-}
+    idt[num].base_low =
+        base & 0xFFFF;
 
-static inline void idt_load(struct idt_ptr* ptr)
-{
-    __asm__ volatile ("lidtl (%0)" : : "r"(ptr));
+    idt[num].base_high =
+        (base >> 16) & 0xFFFF;
+
+    idt[num].selector =
+        selector;
+
+    idt[num].always0 = 0;
+
+    idt[num].flags =
+        flags;
 }
 
 void idt_initialize()
 {
-    idtp.limit = sizeof(idt) - 1;
-    idtp.base = (uint32_t)&idt;
+    idt_ptr.limit =
+        sizeof(idt_entry_t) * 256 - 1;
+
+    idt_ptr.base =
+        (uint32_t)&idt;
 
     for (int i = 0; i < 256; i++)
     {
-        idt_set_gate(i, 0, 0, 0);
+        idt_set_gate(
+            i,
+            0,
+            0,
+            0
+        );
     }
+
+    /*
+    =========================
+    IRQ TIMER
+    =========================
+    */
 
     idt_set_gate(
         32,
@@ -58,6 +69,12 @@ void idt_initialize()
         0x8E
     );
 
+    /*
+    =========================
+    IRQ KEYBOARD
+    =========================
+    */
+
     idt_set_gate(
         33,
         (uint32_t)irq1,
@@ -65,18 +82,37 @@ void idt_initialize()
         0x8E
     );
 
+    /*
+    =========================
+    PAGE FAULT
+    =========================
+    */
+
     idt_set_gate(
         14,
         (uint32_t)isr14,
         0x08,
         0x8E
     );
-    idt_set_gate(
-    128,
-    (uint32_t)isr128,
-    0x08,
-    0xEE
-);
 
-    idt_load(&idtp);
+    /*
+    =========================
+    SYSCALL
+    =========================
+    */
+
+    idt_set_gate(
+        128,
+        (uint32_t)isr128,
+        0x08,
+        0xEE
+    );
+
+    idt_load(
+        (uint32_t)&idt_ptr
+    );
+
+    terminal_write(
+        "[*] IDT initialized\n"
+    );
 }

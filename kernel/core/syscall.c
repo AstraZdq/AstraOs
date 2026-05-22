@@ -2,20 +2,74 @@
 
 #include "terminal.h"
 
-void syscall_initialize()
-{
-}
+#include <stdint.h>
 
-void syscall_handler(uint32_t syscall_number)
+uint32_t syscall_handler(
+    uint32_t syscall_id,
+    uint32_t arg1,
+    uint32_t arg2,
+    uint32_t arg3)
 {
-    switch (syscall_number)
+    (void)arg2;
+    (void)arg3;
+
+    switch (syscall_id)
     {
-        case 0:
-            terminal_write("System Call\n");
-            break;
+        /*
+        =========================
+        syscall 1 -> print
+        =========================
+        */
+
+        case 1:
+        {
+            terminal_write(
+                (char*)arg1
+            );
+
+            return 0;
+        }
+
+        /*
+        =========================
+        syscall 2 -> exit
+        =========================
+        */
+
+        case 2:
+        {
+            terminal_write(
+                "[process exited]\n"
+            );
+
+            while (1)
+            {
+                __asm__ volatile ("hlt");
+            }
+
+            return 0;
+        }
+
+        /*
+        =========================
+        unknown syscall
+        =========================
+        */
 
         default:
-            terminal_write("Unknown Syscall\n");
-            break;
+        {
+            terminal_write(
+                "[unknown syscall]\n"
+            );
+
+            return 0;
+        }
     }
+}
+
+void syscall_initialize()
+{
+    terminal_write(
+        "[syscalls ready]\n"
+    );
 }

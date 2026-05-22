@@ -2,44 +2,52 @@
 
 #include <stdint.h>
 
-struct tss_entry
-{
-    uint32_t prev_tss;
-
-    uint32_t esp0;
-    uint32_t ss0;
-
-    uint32_t unused[23];
-
-} __attribute__((packed));
-
-static struct tss_entry tss;
+tss_entry_t tss;
 
 extern void tss_flush();
 
-extern void gdt_set_tss(
-    uint32_t base,
-    uint32_t limit
-);
-
-void tss_set_stack(uint32_t stack)
-{
-    tss.esp0 = stack;
-}
-
-void tss_initialize()
+void write_tss(
+    uint32_t ss0,
+    uint32_t esp0)
 {
     uint32_t base =
         (uint32_t)&tss;
 
     uint32_t limit =
-        base + sizeof(tss);
+        base + sizeof(tss_entry_t);
 
-    tss.ss0 = 0x10;
+    extern void gdt_set_tss(
+        int num,
+        uint32_t base,
+        uint32_t limit,
+        uint8_t access,
+        uint8_t gran);
 
-    tss.esp0 = 0;
+    gdt_set_tss(
+        5,
+        base,
+        limit,
+        0xE9,
+        0x00
+    );
 
-    gdt_set_tss(base, limit);
+    tss.ss0 = ss0;
+    tss.esp0 = esp0;
+
+    tss.cs = 0x0b;
+    tss.ss =
+    tss.ds =
+    tss.es =
+    tss.fs =
+    tss.gs = 0x13;
+}
+
+void tss_initialize()
+{
+    write_tss(
+        0x10,
+        0x1f0000
+    );
 
     tss_flush();
 }
