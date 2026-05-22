@@ -4,65 +4,25 @@
 
 #include <stdint.h>
 
-static uint8_t initrd_data[1024];
+extern unsigned char
+_binary_build_user_test_elf_start;
 
-static uint8_t fake_elf[] =
-{
-    0x7F, 'E', 'L', 'F',
+extern unsigned char
+_binary_build_user_test_elf_end;
 
-    1,
-    1,
-    1,
-    0,
+#define INITRD_SIZE 0x10000
 
-    0,0,0,0,0,0,0,0,
-
-    2,0,
-
-    3,0,
-
-    1,0,0,0,
-
-    0x00,0x10,0x00,0x00,
-
-    0x34,0x00,0x00,0x00,
-
-    0,0,0,0,
-
-    0,0,0,0,
-
-    52,0,
-
-    32,0,
-
-    1,0,
-
-    0,0,
-
-    0,0,
-
-    0,0,
-
-    1,0,0,0,
-
-    0x54,0x00,0x00,0x00,
-
-    0x00,0x00,0x40,0x00,
-
-    0x00,0x00,0x40,0x00,
-
-    0x10,0x00,0x00,0x00,
-
-    0x10,0x00,0x00,0x00,
-
-    5,0,0,0,
-
-    0x00,0x00,0x40,0x00
-};
+static uint8_t initrd_data[INITRD_SIZE];
 
 void initrd_initialize()
 {
     uint8_t* ptr = initrd_data;
+
+    /*
+    =========================
+    hello.txt
+    =========================
+    */
 
     initrd_file_header_t* header1 =
         (initrd_file_header_t*)ptr;
@@ -70,9 +30,7 @@ void initrd_initialize()
     const char* hello =
         "Hello from structured initrd!";
 
-    int hello_size = sizeof(
-    "Hello from structured initrd!"
-    );
+    int hello_size = 31;
 
     int i = 0;
 
@@ -97,15 +55,19 @@ void initrd_initialize()
 
     ptr += hello_size;
 
+    /*
+    =========================
+    readme.txt
+    =========================
+    */
+
     initrd_file_header_t* header2 =
         (initrd_file_header_t*)ptr;
 
     const char* readme =
         "Welcome to AstraOS.";
 
-    int readme_size = sizeof(
-    "Welcome to AstraOS."
-    );
+    int readme_size = 21;
 
     i = 0;
 
@@ -130,10 +92,25 @@ void initrd_initialize()
 
     ptr += readme_size;
 
+    /*
+    =========================
+    test.elf
+    =========================
+    */
+
     initrd_file_header_t* header3 =
         (initrd_file_header_t*)ptr;
 
-    int elf_size = sizeof(fake_elf);
+    uint8_t* elf_data =
+        &_binary_build_user_test_elf_start;
+
+    uint32_t elf_size =
+    (
+        uint32_t)
+    &_binary_build_user_test_elf_end
+    -
+    (uint32_t)
+    &_binary_build_user_test_elf_start;
 
     i = 0;
 
@@ -151,12 +128,18 @@ void initrd_initialize()
 
     ptr += sizeof(initrd_file_header_t);
 
-    for (i = 0; i < elf_size; i++)
+    for (i = 0; i < (int)elf_size; i++)
     {
-        ptr[i] = fake_elf[i];
+        ptr[i] = elf_data[i];
     }
 
     ptr += elf_size;
+
+    /*
+    =========================
+    Mount files into VFS
+    =========================
+    */
 
     ptr = initrd_data;
 

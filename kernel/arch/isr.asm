@@ -40,7 +40,10 @@ isr14:
 
     pusha
 
+    mov eax, [esp + 32]
+    push eax
     call page_fault_handler
+    add esp, 4
 
     popa
 

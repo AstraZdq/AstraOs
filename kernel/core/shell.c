@@ -1,103 +1,216 @@
 #include "shell.h"
+
 #include "terminal.h"
+#include "keyboard.h"
 
-#define SHELL_BUFFER_SIZE 256
+#include "vfs.h"
+#include "elf.h"
 
-static char shell_buffer[SHELL_BUFFER_SIZE];
+#include <stddef.h>
+
+static char shell_buffer[256];
 static int shell_index = 0;
 
-static int string_compare(const char* a, const char* b)
+static void shell_execute(const char* command)
 {
-    int i = 0;
-
-    while (a[i] && b[i])
+    if (command[0] == '\0')
     {
-        if (a[i] != b[i])
-        {
-            return 0;
-        }
-
-        i++;
+        return;
     }
 
-    return a[i] == b[i];
-}
+    /*
+    =========================
+    help
+    =========================
+    */
 
-static void shell_prompt()
-{
-    terminal_write("\n> ");
-}
-
-static void shell_execute()
-{
-    shell_buffer[shell_index] = '\0';
-
-    if (string_compare(shell_buffer, "help"))
+    if (
+        command[0] == 'h' &&
+        command[1] == 'e' &&
+        command[2] == 'l' &&
+        command[3] == 'p' &&
+        command[4] == '\0'
+    )
     {
-        terminal_write("\nCommands:");
-        terminal_write("\nhelp");
-        terminal_write("\nclear");
-        terminal_write("\nversion");
-        terminal_write("\nhalt");
+        terminal_write("Commands:\n");
+        terminal_write("help\n");
+        terminal_write("clear\n");
+        terminal_write("version\n");
+        terminal_write("halt\n");
+        terminal_write("run\n");
+        return;
     }
-    else if (string_compare(shell_buffer, "clear"))
+
+    /*
+    =========================
+    clear
+    =========================
+    */
+
+    if (
+        command[0] == 'c' &&
+        command[1] == 'l' &&
+        command[2] == 'e' &&
+        command[3] == 'a' &&
+        command[4] == 'r' &&
+        command[5] == '\0'
+    )
     {
         terminal_clear();
+        return;
     }
-    else if (string_compare(shell_buffer, "version"))
+
+    /*
+    =========================
+    version
+    =========================
+    */
+
+    if (
+        command[0] == 'v' &&
+        command[1] == 'e' &&
+        command[2] == 'r' &&
+        command[3] == 's' &&
+        command[4] == 'i' &&
+        command[5] == 'o' &&
+        command[6] == 'n' &&
+        command[7] == '\0'
+    )
     {
-        terminal_write("\nAstraOS v0.0.1");
+        terminal_write("AstraOS v0.1\n");
+        return;
     }
-    else if (string_compare(shell_buffer, "halt"))
+
+    /*
+    =========================
+    halt
+    =========================
+    */
+
+    if (
+        command[0] == 'h' &&
+        command[1] == 'a' &&
+        command[2] == 'l' &&
+        command[3] == 't' &&
+        command[4] == '\0'
+    )
     {
-        terminal_write("\nSystem halted");
+        terminal_write("System halted.\n");
 
         while (1)
         {
             __asm__ volatile ("hlt");
         }
     }
-    else if (shell_index > 0)
+
+    /*
+    =========================
+    run
+    =========================
+    */
+
+    if (
+    command[0] == 'r' &&
+    command[1] == 'u' &&
+    command[2] == 'n' &&
+    command[3] == '\0'
+)
+{
+    terminal_write("Loading ELF...\n");
+
+    file_t* elf =
+        vfs_open("test.elf");
+
+    if (!elf)
     {
-        terminal_write("\nUnknown command");
+        terminal_write("ELF not found\n");
+        return;
     }
 
-    shell_index = 0;
+    if (!elf_validate(elf->data))
+    {
+        terminal_write("Invalid ELF\n");
+        return;
+    }
 
-    shell_prompt();
+    elf_load(elf->data);
+
+    terminal_write("Executing ELF...\n");
+
+    elf_execute(elf->data);
+
+    return;
+}
+    /*
+    =========================
+    unknown
+    =========================
+    */
+
+    terminal_write("Unknown command\n");
 }
 
 void shell_initialize()
 {
-    terminal_write("AstraOS Shell");
-    shell_prompt();
+    shell_index = 0;
+
+    terminal_write("AstraOS Shell\n");
+    terminal_write("> ");
 }
 
 void shell_input(char c)
 {
+    /*
+    =========================
+    ENTER
+    =========================
+    */
+
     if (c == '\n')
     {
-        shell_execute();
+        terminal_write("\n");
+
+        shell_buffer[shell_index] = '\0';
+
+        shell_execute(shell_buffer);
+
+        shell_index = 0;
+
+        terminal_write("> ");
+
         return;
     }
+
+    /*
+    =========================
+    BACKSPACE
+    =========================
+    */
 
     if (c == '\b')
     {
         if (shell_index > 0)
         {
             shell_index--;
+
+            terminal_backspace();
         }
 
         return;
     }
 
-    if (shell_index >= SHELL_BUFFER_SIZE - 1)
+    /*
+    =========================
+    NORMAL CHAR
+    =========================
+    */
+
+    if (shell_index < 255)
     {
-        return;
+        shell_buffer[shell_index] = c;
+
+        shell_index++;
+
+        terminal_putchar(c);
     }
-
-    shell_buffer[shell_index] = c;
-    shell_index++;
-
-    terminal_putchar(c);
 }

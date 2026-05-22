@@ -1,9 +1,16 @@
 ISO=astraos.iso
 KERNEL=build/astra.bin
 
-# Find all C sources recursively in kernel/
 C_SOURCES=$(shell find kernel -name '*.c' | sort)
 C_OBJECTS=$(patsubst kernel/%.c,build/%.o,$(C_SOURCES))
+
+ASM_SOURCES= \
+	kernel/arch/gdt.asm \
+	kernel/arch/isr.asm \
+	kernel/arch/tss.asm \
+	kernel/core/usermode.asm
+
+ASM_OBJECTS=$(patsubst kernel/%.asm,build/%_asm.o,$(ASM_SOURCES))
 
 all: $(ISO)
 
@@ -11,51 +18,127 @@ build:
 	mkdir -p build
 
 build/kernel_entry.o: boot/kernel_entry.asm | build
-	nasm -f elf32 boot/kernel_entry.asm -o build/kernel_entry.o
+	nasm -f elf32 \
+	boot/kernel_entry.asm \
+	-o build/kernel_entry.o
 
-# Assembly sources (located in subdirs)
-build/gdt_asm.o: kernel/arch/gdt.asm | build
-	nasm -f elf32 kernel/arch/gdt.asm -o build/gdt_asm.o
+build/arch/gdt_asm.o: kernel/arch/gdt.asm | build
+	mkdir -p $(dir $@)
 
-build/isr.o: kernel/arch/isr.asm | build
-	nasm -f elf32 kernel/arch/isr.asm -o build/isr.o
+	nasm -f elf32 \
+	$< \
+	-o $@
 
-build/usermode.o: kernel/core/usermode.asm | build
-	nasm -f elf32 kernel/core/usermode.asm -o build/usermode.o
+build/arch/tss_asm.o: kernel/arch/tss.asm | build
+	mkdir -p $(dir $@)
 
-build/sched/switch_task.o: kernel/sched/switch_task.asm | build
-	nasm -f elf32 kernel/sched/switch_task.asm -o build/sched/switch_task.o
+	nasm -f elf32 \
+	$< \
+	-o $@
 
-build/tss_asm.o: kernel/arch/tss.asm | build
-	nasm -f elf32 kernel/arch/tss.asm -o build/tss_asm.o
+build/%_asm.o: kernel/%.asm | build
+	mkdir -p $(dir $@)
 
-# Compile C sources; ensure output directory exists and include kernel subdirs
+	nasm -f elf32 \
+	$< \
+	-o $@
+
 build/%.o: kernel/%.c | build
 	mkdir -p $(dir $@)
+
 	gcc -m32 -ffreestanding -Wall -Wextra \
-		-Ikernel -Ikernel/arch -Ikernel/core -Ikernel/irq -Ikernel/mm -Ikernel/sched -Ikernel/fs -Ikernel/sys \
-		-c $< -o $@
+	-Ikernel \
+	-Ikernel/arch \
+	-Ikernel/core \
+	-Ikernel/irq \
+	-Ikernel/mm \
+	-Ikernel/sched \
+	-Ikernel/fs \
+	-Ikernel/sys \
+	-c $< \
+	-o $@
+
+build/%.o: kernel/%.asm | build
+	mkdir -p $(dir $@)
+
+	nasm -f elf32 \
+	$< \
+	-o $@
+
+#
+# USER ELF
+#
+
+build/user/test.o:
+	mkdir -p build/user
+
+	gcc -m32 \
+	-nostdlib \
+	-ffreestanding \
+	-fno-pie \
+	-c user/test.c \
+	-o build/user/test.o
+
+build/user/test.elf: build/user/test.o
+	ld -m elf_i386 \
+	-Ttext 0x00400000 \
+	-o build/user/test.elf \
+	build/user/test.o
+
+build/user/test_elf.o: build/user/test.elf
+	objcopy \
+	-I binary \
+	-O elf32-i386 \
+	-B i386 \
+	build/user/test.elf \
+	build/user/test_elf.o
+
+#
+# KERNEL LINK
+#
 
 $(KERNEL): \
-	build/kernel_entry.o \
-	$(C_OBJECTS) \
-	build/gdt_asm.o \
-	build/isr.o \
-	build/usermode.o \
-	build/tss_asm.o \
-	build/sched/switch_task.o
-	ld -m elf_i386 -T linker/linker.ld -o $@ $^
+build/kernel_entry.o \
+$(C_OBJECTS) \
+$(ASM_OBJECTS) \
+build/user/test_elf.o
+	ld -m elf_i386 \
+	-T linker/linker.ld \
+	-o $(KERNEL) \
+	$^
+
+#
+# ISO
+#
 
 $(ISO): $(KERNEL)
 	mkdir -p iso/boot/grub
-	cp $(KERNEL) iso/boot/astra.bin
-	cp boot/grub/grub.cfg iso/boot/grub/grub.cfg
-	grub-mkrescue -o $(ISO) iso
+
+	cp $(KERNEL) \
+	iso/boot/astra.bin
+
+	cp boot/grub/grub.cfg \
+	iso/boot/grub/grub.cfg
+
+	grub-mkrescue \
+	-o $(ISO) \
+	iso
+
+#
+# RUN
+#
 
 run: $(ISO)
-	qemu-system-i386 -cdrom $(ISO)
+	qemu-system-i386 \
+	-cdrom $(ISO)
+
+#
+# CLEAN
+#
 
 clean:
-	rm -rf build iso $(ISO)
+	rm -rf build
+	rm -rf iso
+	rm -f $(ISO)
 
 re: clean all

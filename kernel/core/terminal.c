@@ -8,67 +8,102 @@ static size_t terminal_column;
 
 static uint8_t terminal_color;
 
-static uint16_t* terminal_buffer = (uint16_t*)0xB8000;
+static uint16_t* terminal_buffer =
+    (uint16_t*)0xB8000;
 
-static inline uint8_t vga_entry_color(uint8_t fg, uint8_t bg)
+static inline uint8_t vga_entry_color(
+    uint8_t fg,
+    uint8_t bg)
 {
     return fg | bg << 4;
 }
 
-static inline uint16_t vga_entry(unsigned char uc, uint8_t color)
+static inline uint16_t vga_entry(
+    unsigned char uc,
+    uint8_t color)
 {
-    return (uint16_t)uc | (uint16_t)color << 8;
+    return (uint16_t)uc |
+           (uint16_t)color << 8;
 }
 
 static inline void serial_write_char(char c)
 {
-    /* COM1 port: 0x3F8 (data), 0x3FD (line status) */
-    /* Wait for transmitter to be empty (bit 5 of line status) */
     unsigned char status;
-    
-    do {
-        __asm__ volatile ("inb $0x3FD, %0" : "=a" (status));
+
+    do
+    {
+        __asm__ volatile (
+            "inb $0x3FD, %0"
+            : "=a"(status)
+        );
+
     } while ((status & 0x20) == 0);
-    
-    /* Send byte to COM1 data port */
-    __asm__ volatile ("outb %0, $0x3F8" : : "a" (c));
+
+    __asm__ volatile (
+        "outb %0, $0x3F8"
+        :
+        : "a"(c)
+    );
 }
 
 static void terminal_scroll()
 {
-    /* Move all lines up by one */
-    for (size_t y = 0; y < VGA_HEIGHT - 1; y++)
+    for (size_t y = 0;
+         y < VGA_HEIGHT - 1;
+         y++)
     {
-        for (size_t x = 0; x < VGA_WIDTH; x++)
+        for (size_t x = 0;
+             x < VGA_WIDTH;
+             x++)
         {
-            size_t src_index = (y + 1) * VGA_WIDTH + x;
-            size_t dst_index = y * VGA_WIDTH + x;
-            terminal_buffer[dst_index] = terminal_buffer[src_index];
+            size_t src =
+                (y + 1) * VGA_WIDTH + x;
+
+            size_t dst =
+                y * VGA_WIDTH + x;
+
+            terminal_buffer[dst] =
+                terminal_buffer[src];
         }
     }
 
-    /* Clear the last line */
-    for (size_t x = 0; x < VGA_WIDTH; x++)
+    for (size_t x = 0;
+         x < VGA_WIDTH;
+         x++)
     {
-        size_t index = (VGA_HEIGHT - 1) * VGA_WIDTH + x;
-        terminal_buffer[index] = vga_entry(' ', terminal_color);
+        size_t index =
+            (VGA_HEIGHT - 1)
+            * VGA_WIDTH + x;
+
+        terminal_buffer[index] =
+            vga_entry(
+                ' ',
+                terminal_color
+            );
     }
 
-    /* Keep cursor on last line */
     terminal_row = VGA_HEIGHT - 1;
+    terminal_column = 0;
 }
-
 
 void terminal_clear()
 {
-    for (size_t y = 0; y < VGA_HEIGHT; y++)
+    for (size_t y = 0;
+         y < VGA_HEIGHT;
+         y++)
     {
-        for (size_t x = 0; x < VGA_WIDTH; x++)
+        for (size_t x = 0;
+             x < VGA_WIDTH;
+             x++)
         {
-            const size_t index = y * VGA_WIDTH + x;
+            const size_t index =
+                y * VGA_WIDTH + x;
 
             terminal_buffer[index] =
-                vga_entry(' ', terminal_color);
+                vga_entry(
+                    ' ',
+                    terminal_color
+                );
         }
     }
 
@@ -81,7 +116,8 @@ void terminal_initialize()
     terminal_row = 0;
     terminal_column = 0;
 
-    terminal_color = vga_entry_color(15, 0);
+    terminal_color =
+        vga_entry_color(15, 0);
 
     terminal_clear();
 }
@@ -89,7 +125,7 @@ void terminal_initialize()
 void terminal_putchar(char c)
 {
     serial_write_char(c);
-    
+
     if (c == '\n')
     {
         terminal_column = 0;
@@ -103,8 +139,15 @@ void terminal_putchar(char c)
         return;
     }
 
+    if (c == '\r')
+    {
+        terminal_column = 0;
+        return;
+    }
+
     const size_t index =
-        terminal_row * VGA_WIDTH + terminal_column;
+        terminal_row * VGA_WIDTH
+        + terminal_column;
 
     terminal_buffer[index] =
         vga_entry(c, terminal_color);
@@ -123,6 +166,35 @@ void terminal_putchar(char c)
     }
 }
 
+void terminal_backspace()
+{
+    if (terminal_column == 0)
+    {
+        if (terminal_row == 0)
+        {
+            return;
+        }
+
+        terminal_row--;
+        terminal_column =
+            VGA_WIDTH - 1;
+    }
+    else
+    {
+        terminal_column--;
+    }
+
+    const size_t index =
+        terminal_row * VGA_WIDTH
+        + terminal_column;
+
+    terminal_buffer[index] =
+        vga_entry(
+            ' ',
+            terminal_color
+        );
+}
+
 void terminal_write(const char* data)
 {
     size_t i = 0;
@@ -131,5 +203,23 @@ void terminal_write(const char* data)
     {
         terminal_putchar(data[i]);
         i++;
+    }
+}
+
+void terminal_write_hex(uint32_t value)
+{
+    char hex[] =
+        "0123456789ABCDEF";
+
+    terminal_write("0x");
+
+    for (int i = 28;
+         i >= 0;
+         i -= 4)
+    {
+        char c =
+            hex[(value >> i) & 0xF];
+
+        terminal_putchar(c);
     }
 }
