@@ -8,7 +8,7 @@ typedef struct
 
     uint16_t selector;
 
-    uint8_t always0;
+    uint8_t zero;
 
     uint8_t flags;
 

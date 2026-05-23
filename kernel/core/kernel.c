@@ -28,53 +28,86 @@
 
 #include "task.h"
 
-void test_task()
+#include "multiboot.h"
+
+#include "framebuffer.h"
+
+#include "mouse.h"
+
+void kernel_main(
+    uint32_t multiboot_addr
+)
 {
-    while (1)
+    /*
+    =========================
+    MULTIBOOT FRAMEBUFFER
+    =========================
+    */
+
+    multiboot_info_t* mb =
+        (multiboot_info_t*)
+        multiboot_addr;
+
+    (void)mb;
+
+    multiboot_tag_t* tag =
+        (multiboot_tag_t*)
+        (multiboot_addr + 8);
+
+    while (tag->type != 0)
     {
-        terminal_write(
-            "Task running...\n"
-        );
+        if (tag->type == 8)
+        {
+            multiboot_tag_framebuffer_t* fb =
+                (multiboot_tag_framebuffer_t*)
+                tag;
 
-        for (volatile int i = 0;
-             i < 10000000;
-             i++);
+            framebuffer_initialize(
+                (uint32_t)
+                fb->framebuffer_addr,
+
+                fb->framebuffer_width,
+                fb->framebuffer_height,
+
+                fb->framebuffer_pitch
+            );
+
+            framebuffer_clear(
+                0x101010
+            );
+
+            framebuffer_rect(
+                100,
+                100,
+                300,
+                200,
+                0x00FF00
+            );
+
+            framebuffer_text(
+                120,
+                140,
+                "ASTRAOS GUI",
+                0xFFFFFF,
+                0x00FF00
+            );
+        }
+
+        tag =
+            (multiboot_tag_t*)
+            (
+                (uint8_t*)tag +
+                ((tag->size + 7) & ~7)
+            );
     }
-}
 
-void task_a()
-{
-    while (1)
-    {
-        terminal_write(
-            "A"
-        );
+    /*
+    =========================
+    VGA TERMINAL
+    =========================
+    */
 
-        for (volatile int i = 0;
-             i < 4000000;
-             i++);
-    }
-}
-
-void task_b()
-{
-    while (1)
-    {
-        terminal_write(
-            "B"
-        );
-
-        for (volatile int i = 0;
-             i < 4000000;
-             i++);
-    }
-}
-
-void kernel_main()
-{
     terminal_initialize();
-
-   
 
     terminal_write("  [*] Initializing GDT...\n");
     gdt_initialize();
@@ -93,7 +126,6 @@ void kernel_main()
 
     terminal_write("  [*] Initializing heap...\n");
     heap_initialize();
-    
 
     terminal_write("  [*] Mounting filesystem...\n");
     vfs_initialize();
@@ -113,13 +145,12 @@ void kernel_main()
     terminal_write("  [*] Initializing scheduler...\n");
     scheduler_initialize();
 
-
     terminal_write("  [*] Starting timer (100 Hz)...\n");
     pit_initialize(100);
 
     terminal_write("\n  [OK] Kernel boot complete!\n\n");
 
-     terminal_write("\n");
+    terminal_write("\n");
     terminal_write("  ========================================\n");
     terminal_write("    Welcome to AstraOS Kernel\n");
     terminal_write("    x86 32-bit Architecture\n");
@@ -152,37 +183,18 @@ void kernel_main()
         terminal_write("\n");
     }
 
-    file_t* elf_file =
-        vfs_open("test.elf");
-
-    if (elf_file)
-    {
-        terminal_write("\n  [*] ELF Binary Check:\n");
-        
-        if (elf_validate(
-            elf_file->data))
-        {
-            elf_load(
-                elf_file->data
-            );
-        }
-        else
-        {
-            terminal_write("      [!] ELF validation failed\n");
-        }
-    }
-
     terminal_write("\n  [*] Initializing keyboard...\n");
     keyboard_initialize();
 
+    terminal_write("  [*] Initializing mouse...\n");
+    mouse_initialize();
+
     terminal_write("  [*] Starting shell...\n");
-    
 
     terminal_write("\n  Type 'help' for available commands\n");
     terminal_write("  -----------------------------------\n\n");
-    shell_initialize();
 
-    
+    shell_initialize();
 
     __asm__ volatile ("sti");
 

@@ -2,6 +2,7 @@ ISO=astraos.iso
 KERNEL=build/astra.bin
 
 C_SOURCES=$(shell find kernel -name '*.c' | sort)
+
 C_OBJECTS=$(patsubst kernel/%.c,build/%.o,$(C_SOURCES))
 
 ASM_SOURCES= \
@@ -16,10 +17,6 @@ ASM_OBJECTS=$(patsubst kernel/%.asm,build/%_asm.o,$(ASM_SOURCES))
 
 all: $(ISO)
 
-#
-# BUILD DIR
-#
-
 build:
 	mkdir -p build
 
@@ -33,7 +30,7 @@ build/kernel_entry.o: boot/kernel_entry.asm | build
 	-o build/kernel_entry.o
 
 #
-# ASM KERNEL
+# ASM
 #
 
 build/%_asm.o: kernel/%.asm | build
@@ -44,14 +41,17 @@ build/%_asm.o: kernel/%.asm | build
 	-o $@
 
 #
-# C KERNEL
+# C
 #
 
 build/%.o: kernel/%.c | build
 	mkdir -p $(dir $@)
 
-	gcc -m32 \
+	gcc \
+	-m32 \
 	-ffreestanding \
+	-fno-pie \
+	-fno-stack-protector \
 	-Wall \
 	-Wextra \
 	-Ikernel \
@@ -62,38 +62,30 @@ build/%.o: kernel/%.c | build
 	-Ikernel/sched \
 	-Ikernel/fs \
 	-Ikernel/sys \
+	-Ikernel/video \
 	-c $< \
 	-o $@
 
 #
-# USERLAND
+# USER ELF
 #
-
-build/user/start.o:
-	mkdir -p build/user
-
-	nasm -f elf32 \
-	user/start.asm \
-	-o build/user/start.o
 
 build/user/test.o:
 	mkdir -p build/user
 
-	gcc -m32 \
+	gcc \
+	-m32 \
 	-nostdlib \
 	-ffreestanding \
 	-fno-pie \
 	-c user/test.c \
 	-o build/user/test.o
 
-build/user/test.elf: \
-build/user/start.o \
-build/user/test.o
-	ld -m elf_i386 \
+build/user/test.elf: build/user/test.o
+	ld \
+	-m elf_i386 \
 	-Ttext 0x00400000 \
-	-e _start \
 	-o build/user/test.elf \
-	build/user/start.o \
 	build/user/test.o
 
 build/user/test_elf.o: build/user/test.elf
@@ -105,7 +97,7 @@ build/user/test_elf.o: build/user/test.elf
 	build/user/test_elf.o
 
 #
-# LINK KERNEL
+# LINK
 #
 
 $(KERNEL): \
@@ -113,7 +105,9 @@ build/kernel_entry.o \
 $(C_OBJECTS) \
 $(ASM_OBJECTS) \
 build/user/test_elf.o
-	ld -m elf_i386 \
+
+	ld \
+	-m elf_i386 \
 	-T linker/linker.ld \
 	-o $(KERNEL) \
 	$^

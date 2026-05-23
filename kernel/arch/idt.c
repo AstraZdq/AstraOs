@@ -1,21 +1,19 @@
 #include "idt.h"
 
-#include <stddef.h>
-#include <stdint.h>
+#include "io.h"
 
-#include "terminal.h"
+idt_entry_t idt[256];
+
+idt_ptr_t idt_ptr;
 
 extern void idt_load(uint32_t);
 
 extern void irq0();
 extern void irq1();
+extern void irq12();
 
 extern void isr14();
 extern void isr128();
-
-idt_entry_t idt[256];
-
-idt_ptr_t idt_ptr;
 
 static void idt_set_gate(
     uint8_t num,
@@ -26,16 +24,16 @@ static void idt_set_gate(
     idt[num].base_low =
         base & 0xFFFF;
 
-    idt[num].base_high =
-        (base >> 16) & 0xFFFF;
-
     idt[num].selector =
         selector;
 
-    idt[num].always0 = 0;
+    idt[num].zero = 0;
 
     idt[num].flags =
         flags;
+
+    idt[num].base_high =
+        (base >> 16) & 0xFFFF;
 }
 
 void idt_initialize()
@@ -58,7 +56,7 @@ void idt_initialize()
 
     /*
     =========================
-    IRQ TIMER
+    IRQ
     =========================
     */
 
@@ -69,15 +67,16 @@ void idt_initialize()
         0x8E
     );
 
-    /*
-    =========================
-    IRQ KEYBOARD
-    =========================
-    */
-
     idt_set_gate(
         33,
         (uint32_t)irq1,
+        0x08,
+        0x8E
+    );
+
+    idt_set_gate(
+        44,
+        (uint32_t)irq12,
         0x08,
         0x8E
     );
@@ -110,9 +109,5 @@ void idt_initialize()
 
     idt_load(
         (uint32_t)&idt_ptr
-    );
-
-    terminal_write(
-        "[*] IDT initialized\n"
     );
 }
