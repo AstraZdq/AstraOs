@@ -1,5 +1,10 @@
 ISO=astraos.iso
+
 KERNEL=build/astra.bin
+
+#
+# SOURCES
+#
 
 C_SOURCES=$(shell find kernel -name '*.c' | sort)
 
@@ -15,6 +20,10 @@ ASM_SOURCES= \
 
 ASM_OBJECTS=$(patsubst kernel/%.asm,build/%_asm.o,$(ASM_SOURCES))
 
+#
+# BUILD
+#
+
 all: $(ISO)
 
 build:
@@ -25,7 +34,8 @@ build:
 #
 
 build/kernel_entry.o: boot/kernel_entry.asm | build
-	nasm -f elf32 \
+	nasm \
+	-f elf32 \
 	boot/kernel_entry.asm \
 	-o build/kernel_entry.o
 
@@ -36,7 +46,8 @@ build/kernel_entry.o: boot/kernel_entry.asm | build
 build/%_asm.o: kernel/%.asm | build
 	mkdir -p $(dir $@)
 
-	nasm -f elf32 \
+	nasm \
+	-f elf32 \
 	$< \
 	-o $@
 
@@ -101,10 +112,10 @@ build/user/test_elf.o: build/user/test.elf
 #
 
 $(KERNEL): \
-build/kernel_entry.o \
-$(C_OBJECTS) \
-$(ASM_OBJECTS) \
-build/user/test_elf.o
+	build/kernel_entry.o \
+	$(C_OBJECTS) \
+	$(ASM_OBJECTS) \
+	build/user/test_elf.o
 
 	ld \
 	-m elf_i386 \
@@ -135,6 +146,7 @@ $(ISO): $(KERNEL)
 
 run: $(ISO)
 	qemu-system-i386 \
+	-m 512M \
 	-cdrom $(ISO)
 
 #
@@ -145,5 +157,9 @@ clean:
 	rm -rf build
 	rm -rf iso
 	rm -f $(ISO)
+
+#
+# REBUILD
+#
 
 re: clean all

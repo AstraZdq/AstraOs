@@ -9,3 +9,7 @@ void mouse_handler();
 int mouse_x();
 
 int mouse_y();
+
+int mouse_button_left();
+
+int mouse_button_right();

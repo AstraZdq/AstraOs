@@ -34,10 +34,14 @@
 
 #include "mouse.h"
 
+#include "desktop.h"
+
 void kernel_main(
     uint32_t multiboot_addr
 )
 {
+
+    
     /*
     =========================
     MULTIBOOT FRAMEBUFFER
@@ -70,6 +74,12 @@ void kernel_main(
                 fb->framebuffer_height,
 
                 fb->framebuffer_pitch
+            );
+
+            paging_map_device(
+                (uint32_t)
+                fb->framebuffer_addr,
+                fb->framebuffer_pitch * fb->framebuffer_height
             );
 
             framebuffer_clear(
@@ -121,11 +131,17 @@ void kernel_main(
     terminal_write("  [*] Initializing IDT...\n");
     idt_initialize();
 
+    __asm__ volatile ("sti");
+
+
     terminal_write("  [*] Setting up paging...\n");
     paging_initialize();
 
     terminal_write("  [*] Initializing heap...\n");
     heap_initialize();
+
+    terminal_write("  [*] Initializing backbuffer...\n");
+    framebuffer_init_backbuffer();
 
     terminal_write("  [*] Mounting filesystem...\n");
     vfs_initialize();
@@ -196,10 +212,17 @@ void kernel_main(
 
     shell_initialize();
 
-    __asm__ volatile ("sti");
 
+    uint64_t last_tick = 0;
     while (1)
     {
+        if (timer_ticks >= last_tick + 2)
+        {
+            last_tick = timer_ticks;
+            desktop_render();
+            framebuffer_swap();
+        }
+
         __asm__ volatile ("hlt");
     }
 }

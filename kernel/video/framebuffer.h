@@ -51,3 +51,9 @@ void framebuffer_text(
     uint32_t fg,
     uint32_t bg
 );
+
+void framebuffer_swap();
+
+void framebuffer_init_backbuffer();
+
+void framebuffer_draw_gradient();

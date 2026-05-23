@@ -3,35 +3,27 @@ align 8
 
 header_start:
 
-    ;
-    ; multiboot2 magic
-    ;
-
-    dd 0xe85250d6
+    dd 0xE85250D6
     dd 0
     dd header_end - header_start
-    dd -(0xe85250d6 + 0 + (header_end - header_start))
+    dd -(0xE85250D6 + 0 + (header_end - header_start))
 
-    ;
-    ; framebuffer request tag
-    ;
+    ; framebuffer tag
 
-    align 8
-
-    dd 8
+    dw 5
+    dw 0
     dd 20
 
     dd 1024
     dd 768
     dd 32
 
-    ;
-    ; end tag
-    ;
-
     align 8
 
-    dd 0
+    ; end tag
+
+    dw 0
+    dw 0
     dd 8
 
 header_end:
@@ -45,25 +37,19 @@ stack_bottom:
 stack_top:
 
 section .text
-
 global _start
+
 extern kernel_main
 
 _start:
-
     cli
 
     mov esp, stack_top
 
-    ;
-    ; ebx = multiboot info
-    ;
-
+    ; EBX = multiboot address
     push ebx
 
     call kernel_main
-
-    add esp, 4
 
 .hang:
     hlt
