@@ -1,5 +1,9 @@
 #pragma once
 
+#include "context.h"
+
 void scheduler_initialize();
 
-void scheduler_run();
+registers_t* scheduler_switch(
+    registers_t* regs
+);

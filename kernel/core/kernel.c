@@ -26,6 +26,50 @@
 
 #include "tss.h"
 
+#include "task.h"
+
+void test_task()
+{
+    while (1)
+    {
+        terminal_write(
+            "Task running...\n"
+        );
+
+        for (volatile int i = 0;
+             i < 10000000;
+             i++);
+    }
+}
+
+void task_a()
+{
+    while (1)
+    {
+        terminal_write(
+            "A"
+        );
+
+        for (volatile int i = 0;
+             i < 4000000;
+             i++);
+    }
+}
+
+void task_b()
+{
+    while (1)
+    {
+        terminal_write(
+            "B"
+        );
+
+        for (volatile int i = 0;
+             i < 4000000;
+             i++);
+    }
+}
+
 void kernel_main()
 {
     terminal_initialize();
@@ -49,6 +93,7 @@ void kernel_main()
 
     terminal_write("  [*] Initializing heap...\n");
     heap_initialize();
+    
 
     terminal_write("  [*] Mounting filesystem...\n");
     vfs_initialize();
@@ -62,8 +107,12 @@ void kernel_main()
     terminal_write("  [*] Initializing process manager...\n");
     process_initialize();
 
+    terminal_write("  [*] Initializing task system...\n");
+    task_initialize();
+
     terminal_write("  [*] Initializing scheduler...\n");
     scheduler_initialize();
+
 
     terminal_write("  [*] Starting timer (100 Hz)...\n");
     pit_initialize(100);

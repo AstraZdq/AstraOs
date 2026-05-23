@@ -9,7 +9,8 @@ ASM_SOURCES= \
 	kernel/arch/idt.asm \
 	kernel/arch/isr.asm \
 	kernel/arch/tss.asm \
-	kernel/core/usermode.asm
+	kernel/core/usermode.asm \
+	kernel/sched/switch.asm
 
 ASM_OBJECTS=$(patsubst kernel/%.asm,build/%_asm.o,$(ASM_SOURCES))
 
