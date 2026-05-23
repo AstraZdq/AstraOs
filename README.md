@@ -12,6 +12,8 @@ Ce n’est pas un système destiné à remplacer Linux ou Windows, mais un vrai 
 ## Screenshot
 
 ![AstraOS Screenshot](image/screen.png)
+![AstraOS Screenshot](image/screen2.png)
+
 
 ---
 
